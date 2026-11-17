@@ -169,7 +169,7 @@ size_t ZSTD_compressBlock_doubleFast_noDict_generic(
         nextStep = ip + kStepIncr;
         ip1 = ip + step;
 
-        if (ip1 > ilimit) {
+        if (CLANG_X64_UNLIKELY(ip1 > ilimit)) {
             goto _cleanup;
         }
 
@@ -221,7 +221,7 @@ size_t ZSTD_compressBlock_doubleFast_noDict_generic(
                   goto _search_next_long;
             }
 
-            if (ip1 >= nextStep) {
+            if (CLANG_X64_UNLIKELY(ip1 >= nextStep)) {
                 PREFETCH_L1(ip1 + 64);
                 PREFETCH_L1(ip1 + 128);
                 step++;
@@ -236,7 +236,7 @@ size_t ZSTD_compressBlock_doubleFast_noDict_generic(
     #if defined(__aarch64__)
             PREFETCH_L1(ip+256);
     #endif
-        } while (ip1 <= ilimit);
+        } while (CLANG_X64_LIKELY(ip1 <= ilimit));
 
 _cleanup:
         /* If offset_1 started invalid (offsetSaved1 != 0) and became valid (offset_1 != 0),
@@ -276,7 +276,7 @@ _match_found: /* requires ip, offset, mLength */
         offset_2 = offset_1;
         offset_1 = offset;
 
-        if (step < 4) {
+        if (CLANG_X64_LIKELY(step < 4)) {
             /* It is unsafe to write this value back to the hashtable when ip1 is
              * greater than or equal to the new ip we will have after we're done
              * processing this match. Rather than perform that test directly
@@ -294,7 +294,7 @@ _match_stored:
         ip += mLength;
         anchor = ip;
 
-        if (ip <= ilimit) {
+        if (CLANG_X64_LIKELY(ip <= ilimit)) {
             /* Complementary insertion */
             /* done after iLimit test, as candidates could be > iend-8 */
             {   U32 const indexToInsert = curr+2;
@@ -305,8 +305,8 @@ _match_stored:
             }
 
             /* check immediate repcode */
-            while ( (ip <= ilimit)
-                 && ( (offset_2>0)
+            while ( CLANG_X64_LIKELY(ip <= ilimit)
+                 && CLANG_X64_UNLIKELY( (offset_2>0)
                     & (MEM_read32(ip) == MEM_read32(ip - offset_2)) )) {
                 /* store sequence */
                 size_t const rLength = ZSTD_count(ip+4, ip+4-offset_2, iend) + 4;
