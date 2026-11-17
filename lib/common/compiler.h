@@ -199,6 +199,22 @@
 #define UNLIKELY(x) (x)
 #endif
 
+/* Branch hints that only pay off with clang on x86-64.
+ * Used on the match path of the fast and double-fast compressors, where they
+ * change the block layout (fewer taken branches), not the predictions.
+ * With gcc they made no difference or slowed level 1 down, and on AArch64 they
+ * slowed the fast levels down, so they expand to the plain condition there.
+ * The operand must be a truth value, not a size_t: __builtin_expect() takes a
+ * long, which is 32 bits on Windows.
+ */
+#if defined(__clang__) && (defined(__x86_64__) || defined(_M_X64))
+#define CLANG_X64_LIKELY(x) LIKELY(x)
+#define CLANG_X64_UNLIKELY(x) UNLIKELY(x)
+#else
+#define CLANG_X64_LIKELY(x) (x)
+#define CLANG_X64_UNLIKELY(x) (x)
+#endif
+
 #if __has_builtin(__builtin_unreachable) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)))
 #  define ZSTD_UNREACHABLE do { assert(0), __builtin_unreachable(); } while (0)
 #else
